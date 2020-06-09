@@ -93,14 +93,8 @@ const resolvers = {
     allAuthors: async () => {
       const authors = await Author.find({})
       return [...authors].map(async author => {
-        const books = await Book.find({})
-        let bookCount = 0
-        books.map(book => {
-          if(book.author.toString() === author._id.toString()) {
-            bookCount += 1
-            author.bookCount = bookCount
-          }
-        })
+        const bookCount = await Book.collection.countDocuments({ author: author._id })
+        author.bookCount = bookCount
         return author
       })
     },
