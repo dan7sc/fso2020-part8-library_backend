@@ -1,4 +1,6 @@
-const { ApolloServer, gql, PubSub, UserInputError, AuthenticationError } = require('apollo-server')
+const {
+  ApolloServer, gql, PubSub, UserInputError, AuthenticationError
+} = require('apollo-server')
 const mongoose = require('mongoose')
 const jwt = require('jsonwebtoken')
 const config = require('./config')
@@ -33,6 +35,7 @@ const typeDefs = gql`
     name: String!
     born: Int
     id: ID!
+    books: [String!]!
     bookCount: Int!
   }
 
@@ -82,9 +85,9 @@ const typeDefs = gql`
 
 const resolvers = {
   Author: {
-    bookCount: (root) => {
-      return Book.collection.countDocuments({ author: root._id })
-    }
+    bookCount: async (root) => (
+      root.books.length
+    )
   },
   Query: {
     bookCount: () => Book.collection.countDocuments(),
@@ -110,23 +113,20 @@ const resolvers = {
 
       let author = await Author.findOne({ name: args.author })
       if (!author) {
-        const newAuthor = new Author({
+        author = new Author({
           name: args.author,
-          born: null
+          born: null,
+          books: []
         })
-        try {
-          await newAuthor.save()
-        } catch(error) {
-          throw new UserInputError(error.message, {
-            invalidArgs: args
-          })
-        }
-        author = await Author.findOne({ name: newAuthor.name})
       }
+
       const data = { ...args, author }
       const book = new Book({ ...data })
+      author.books = author.books.concat(book._id)
+
       try {
         await book.save()
+        await author.save()
       } catch(error) {
         throw new UserInputError(error.message, {
           invalidArgs: args
