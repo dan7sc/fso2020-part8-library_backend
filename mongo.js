@@ -16,24 +16,29 @@ const authors = [
   {
     name: 'Robert Martin',
     born: 1952,
+    books: [],
     _id: '5ed6a99250a3045c26b92caa'
   },
   {
     name: 'Martin Fowler',
     born: 1963,
+    books: [],
     _id: '5ed6a99250a3045c26b92cab'
   },
   {
     name: 'Fyodor Dostoevsky',
     born: 1821,
+    books: [],
     _id: '5ed6a99250a3045c26b92cac'
   },
   {
     name: 'Joshua Kerievsky',
+    books: [],
     _id: '5ed6a99250a3045c26b92cad'
   },
   {
     name: 'Sandi Metz',
+    books: [],
     _id: '5ed6a99250a3045c26b92cae'
   }
 ]
@@ -83,6 +88,44 @@ const books = [
   },
 ]
 
+const insertDataInDB = async (authorData, bookData) => {
+  let author = await Author.findOne({ name: authorData.name })
+  if (!author) {
+    author = new Author({
+      name: authorData.name,
+      born: authorData.born,
+      books: []
+    })
+  }
+
+  const data = { ...bookData, author }
+  const book = new Book({ ...data })
+  author.books = author.books.concat(book._id)
+
+  try {
+    await book.save()
+    await author.save()
+  } catch(error) {
+    console.log(error)
+  }
+}
+
+const populate = async () => {
+  console.log('Initializing insertions in database')
+  for (let i = 0; i < books.length; i++) {
+    const book = books[i]
+    const author = authors.find(author => (
+      author._id.toString() === book.author.toString()
+    ))
+    if (author) {
+      await insertDataInDB(author, book)
+    }
+    console.log(`Data ${i} added`)
+  }
+  mongoose.connection.close()
+  console.log('connection to database closed')
+}
+
 const populateDB = async (objects, model) => {
   for (let i = 0; i < objects.length; i++) {
     const object= new model(objects[i])
@@ -110,4 +153,5 @@ const viewBooks = async () => {
 }
 
 // populateAll()
-viewBooks()
+// viewBooks()
+populate()
